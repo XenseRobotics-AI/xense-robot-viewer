@@ -2,19 +2,19 @@
 
 ---
 
-# Robot Viewer
+# Xense Robot Viewer
 
-[![Version](https://img.shields.io/badge/version-v1.3.2-blue.svg)](https://github.com/fan-ziqi/robot_viewer)
+[![Version](https://img.shields.io/badge/version-v1.3.2-blue.svg)](https://github.com/XenseRobotics-AI/xense-robot-viewer)
 [![License](https://img.shields.io/badge/license-Apache--2.0-yellow.svg)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-web-orange.svg)](https://github.com/fan-ziqi/robot_viewer)
-[![JavaScript](https://img.shields.io/badge/language-JavaScript-f1e05a.svg)](https://github.com/fan-ziqi/robot_viewer)
+[![Platform](https://img.shields.io/badge/platform-web-orange.svg)](https://github.com/XenseRobotics-AI/xense-robot-viewer)
+[![JavaScript](https://img.shields.io/badge/language-JavaScript-f1e05a.svg)](https://github.com/XenseRobotics-AI/xense-robot-viewer)
 [![Three.js](https://img.shields.io/badge/Three.js-0.163.0-black.svg)](https://threejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-4.5.0-646cff.svg)](https://vitejs.dev/)
-[![Demo](https://img.shields.io/badge/Demo-Live-brightgreen.svg)](http://viewer.robotsfan.com/)
+[![Upstream Demo](https://img.shields.io/badge/Upstream_Demo-Live-brightgreen.svg)](http://viewer.robotsfan.com/)
 
-**Robot Viewer** is a web-based 3D viewer for robot models and scenes. Built on top of [Three.js](https://threejs.org/), it provides an intuitive interface for visualizing, editing, and simulating robots directly in the browser without any installation required. This tool helps you visualize and analyze robot structures, joints, and physical properties.
+**Xense Robot Viewer** is maintained by [XenseRobotics-AI](https://github.com/XenseRobotics-AI) for further customization. It is a web-based 3D viewer for robot models and scenes. Built on top of [Three.js](https://threejs.org/), it provides an intuitive interface for visualizing, editing, and simulating robots directly in the browser without any installation required. This tool helps you visualize and analyze robot structures, joints, and physical properties.
 
-**Live Demo** (All processing happens in your browser - your models never leave your device):
+**Upstream Live Demo** (This is the original project's deployment, not a deployment of this repository. All processing happens in your browser - your models never leave your device):
 
 [![Try it now](https://img.shields.io/badge/🌐_Try_it_now-viewer.robotsfan.com-brightgreen?style=for-the-badge)](http://viewer.robotsfan.com/)
 
@@ -41,8 +41,8 @@ This project uses **pnpm**, but you can also use **npm** or **yarn**.
 Clone the repository and install dependencies:
 
 ```bash
-git clone https://github.com/fan-ziqi/robot_viewer.git
-cd robot_viewer
+git clone https://github.com/XenseRobotics-AI/xense-robot-viewer.git
+cd xense-robot-viewer
 pnpm install
 ```
 
@@ -64,9 +64,24 @@ Output will be in the `dist/` directory.
 
 We welcome contributions from the community! Whether you're fixing bugs, adding features, or improving documentation, your help is appreciated.
 
-- **Bug Reports**: Open an [issue](https://github.com/fan-ziqi/robot_viewer/issues) with details
-- **Feature Requests**: Discuss ideas in [Discussions](https://github.com/fan-ziqi/robot_viewer/discussions)
+- **Bug Reports**: Open an [issue](https://github.com/XenseRobotics-AI/xense-robot-viewer/issues) with details
+- **Feature Requests**: Open an [issue](https://github.com/XenseRobotics-AI/xense-robot-viewer/issues) to discuss ideas
 - **Pull Requests**: Submit PRs with clear descriptions and tests
+
+## Upstream and Contributors
+
+This independent repository originates from [fan-ziqi/robot_viewer](https://github.com/fan-ziqi/robot_viewer), imported at commit `706f8133dc3979cbe6665de607f8e04b1bdc03b6`. The original commit history, author information, and version tags are preserved. This README was adapted for XenseRobotics-AI during migration.
+
+Thanks to the original contributors: [fan-ziqi (Ziqi Fan)](https://github.com/fan-ziqi), [Atticli](https://github.com/Atticlmr), [Jelatine](https://github.com/Jelatine), [LueApp](https://github.com/LueApp), [RobJMal](https://github.com/RobJMal), and [Shaochang TAN](https://github.com/petertheprocess).
+
+To fetch future upstream changes from a fresh clone:
+
+```bash
+git remote add upstream https://github.com/fan-ziqi/robot_viewer.git
+git fetch upstream --tags
+```
+
+Review and merge upstream changes into a development branch as needed.
 
 ## License
 

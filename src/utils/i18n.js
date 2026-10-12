@@ -25,6 +25,15 @@ export const translations = {
         'help': '帮助',
         'theme': '主题',
         'language': '语言',
+        'viewerActions': '查看器快捷操作',
+        'poseZero': '零位置',
+        'poseInitial': '初始位置',
+        'poseZeroHint': '将所有可动关节设为零位置',
+        'poseInitialHint': '恢复当前工位配置的初始位置',
+        'poseNoModel': '请先加载机器人模型',
+        'poseLoading': '正在读取初始位置配置',
+        'poseMissing': '请加载包含当前工位 config/start_pose.robotanim.json 的完整资产目录',
+        'poseInvalid': '初始位置配置无效或与当前机器人不匹配',
 
         // 面板标题
         'fileList': '文件',
@@ -207,6 +216,15 @@ export const translations = {
         'help': 'Help',
         'theme': 'Theme',
         'language': 'Language',
+        'viewerActions': 'Viewer actions',
+        'poseZero': 'Zero pose',
+        'poseInitial': 'Initial pose',
+        'poseZeroHint': 'Set all movable joints to zero',
+        'poseInitialHint': 'Restore the current workcell\'s configured initial pose',
+        'poseNoModel': 'Load a robot model first',
+        'poseLoading': 'Reading the initial pose configuration',
+        'poseMissing': 'Load the complete asset directory containing this workcell\'s config/start_pose.robotanim.json',
+        'poseInvalid': 'The initial pose configuration is invalid or belongs to another robot',
 
         // Panel titles
         'fileList': 'Files',

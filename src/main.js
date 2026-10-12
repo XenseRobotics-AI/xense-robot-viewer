@@ -18,6 +18,9 @@ import { MujocoSimulationManager } from './renderer/MujocoSimulationManager.js';
 import { i18n } from './utils/i18n.js';
 import { PoseController } from './animation/runtime/PoseController.js';
 import { AnimationWorkspace } from './animation/ui/AnimationWorkspace.js';
+import { PosePresetController } from './controllers/PosePresetController.js';
+import { PosePresetsUI } from './ui/PosePresetsUI.js';
+import { ModelInspectorUI } from './ui/ModelInspectorUI.js';
 
 // Expose d3 globally for PanelManager
 window.d3 = d3;
@@ -41,6 +44,8 @@ class App {
         this.mujocoSimulationManager = null;
         this.poseController = null;
         this.animationWorkspace = null;
+        this.posePresets = null;
+        this.posePresetsUI = null;
         this.currentModel = null;
         this.currentMJCFFile = null;
         this.currentMJCFModel = null;
@@ -191,6 +196,26 @@ class App {
                 poseController: this.poseController
             });
             window.animationWorkspace = this.animationWorkspace;
+
+            let preferredPose = 'zero';
+            try { preferredPose = localStorage.getItem('xense-viewer-pose') || 'zero'; } catch {}
+            this.posePresets = new PosePresetController(this.poseController, {
+                selected: preferredPose,
+                beforeApply: () => {
+                    this.animationWorkspace.stopRecording();
+                    this.animationWorkspace.playback.pause();
+                    if (this.mujocoSimulationManager?.hasScene()) {
+                        this.mujocoSimulationManager.clearScene();
+                        if (this.currentModel?.threeObject) this.currentModel.threeObject.visible = true;
+                        const button = document.getElementById('mujoco-simulate-btn-bar');
+                        button?.classList.remove('active');
+                        const label = button?.querySelector('span');
+                        if (label) label.textContent = i18n.t('mujocoSimulate');
+                    }
+                }
+            });
+            this.posePresetsUI = new PosePresetsUI(this.posePresets);
+            this.modelInspector = new ModelInspectorUI(this.sceneManager, this.poseController, this.panelManager);
 
             // Set measurement update callback
             this.sceneManager.onMeasurementUpdate = () => {
@@ -379,6 +404,8 @@ class App {
 
             this.currentModel = model;
             this.animationWorkspace?.setModel(null, file.name);
+            this.posePresets?.setModel(null, file, this.fileHandler.getFileMap());
+            this.modelInspector?.setModel(model, file, this.fileHandler.getFileMap(), false);
             this.updateModelInfo(model, file);
 
             // Hide snapshot if exists
@@ -591,6 +618,8 @@ class App {
 
         // Update model info
         this.updateModelInfo(model, file);
+        this.modelInspector?.setModel(model, file, this.fileHandler.getFileMap(), isMesh);
+        await this.posePresets?.setModel(isMesh ? null : model, file, this.fileHandler.getFileMap());
     }
 
     /**
@@ -893,6 +922,8 @@ class App {
     handleLanguageChanged(lang) {
         i18n.setLanguage(lang);
         this.animationWorkspace?.refreshLanguage();
+        this.posePresetsUI?.refresh();
+        this.modelInspector?.refreshLanguage();
 
         // Update code editor save status text
         if (this.codeEditorManager) {

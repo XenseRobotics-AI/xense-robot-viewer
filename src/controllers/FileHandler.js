@@ -3,6 +3,7 @@
  * Handles file drag-drop, loading, type detection, etc.
  */
 import * as THREE from 'three';
+import { inspectMesh } from '../inspection/MeshStatistics.js';
 import { ModelLoaderFactory } from '../loaders/ModelLoaderFactory.js';
 import { readFileContent, getFileFromEntry, getFileTypeFromExtension, getFileDisplayType } from '../utils/FileUtils.js';
 
@@ -272,9 +273,8 @@ export class FileHandler {
     }
 
     /**
-     * Pick the model to open when a folder contains multiple MJCF files.
-     * Prefer the canonical scene/model over helper objects and specialised
-     * variants (ball, backlash, rollers, etc.).
+     * Prefer the default Xense workcell when available. Otherwise retain the
+     * canonical MJCF scene/model preference over specialised helper variants.
      */
     selectInitialModel(loadableFiles) {
         if (!loadableFiles || loadableFiles.length === 0) return null;
@@ -284,6 +284,7 @@ export class FileHandler {
 
         const basename = fileInfo => (fileInfo.name || '').split(/[\\/]/).pop().toLowerCase();
         const exactPreference = [
+            'forward-01-flexiv-rizon4s-taccap.urdf',
             'scene.xml',
             'robot_allcollisions.xml',
             'robot.xml',
@@ -534,11 +535,13 @@ export class FileHandler {
             });
 
             const simpleMeshModel = {
+                meshStatistics: inspectMesh(meshObject),
                 name: fileName,
                 rootLink: 'mesh_root',
                 links: new Map([
                     ['mesh_root', {
                         name: 'mesh_root',
+                        userData: {},
                         threeObject: meshObject,
                         visuals: [{
                             threeObject: meshObject,

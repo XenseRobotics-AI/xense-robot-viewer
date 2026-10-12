@@ -106,12 +106,13 @@ export class PoseController {
         });
     }
 
-    applyPose(values, { source = 'playback' } = {}) {
+    applyPose(values, { source = 'playback', ignoreLimits = false } = {}) {
         if (!this.model || !values) return;
 
         Object.entries(values).forEach(([jointName, value]) => {
             this.setJointValue(jointName, value, {
                 source,
+                ignoreLimits,
                 commit: false,
                 render: false,
                 measure: false

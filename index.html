@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark light">
     <title>Robot Viewer</title>
-    <link rel="icon" type="image/svg+xml" href="./favicon.svg">
-    <link rel="alternate icon" href="./favicon.svg">
+    <link rel="icon" type="image/jpeg" href="./branding/logo.jpg">
+    <link rel="apple-touch-icon" href="./branding/logo.jpg">
     <!-- Blocking script: Set theme before rendering any content -->
     <script>
         (function() {
@@ -368,6 +368,67 @@
             z-index: 100;
             max-width: calc(100vw - 40px);
             transition: all 0.4s var(--spring);
+        }
+
+        /* Independent extension bar; original display controls stay intact. */
+        #viewer-actions-bar {
+            position: absolute;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 9px;
+            max-width: calc(100% - 24px);
+            flex-wrap: wrap;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+            border: 0.5px solid var(--glass-border);
+            border-radius: 21px;
+            box-shadow: var(--glass-shadow);
+            z-index: 100;
+        }
+
+        .model-inspector {
+            top: 138px;
+            right: 20px;
+            width: 470px;
+            height: min(650px, calc(100vh - 160px));
+            color: var(--text-primary);
+        }
+        .inspector-body { padding: 14px 16px; overflow: auto; flex: 1; min-height: 0; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+        .inspector-body p { margin: 8px 0; }
+        .inspector-body h4 { margin: 16px 0 6px; }
+        .inspector-field { margin: 9px 0; }
+        .inspector-field strong { color: var(--text-secondary); font-weight: 500; }
+        .inspector-field div { user-select: text; font-variant-numeric: tabular-nums; }
+        .inspector-selector { display: grid; gap: 6px; }
+        .inspector-selector select { width: 100%; padding: 7px; border-radius: 7px; border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--text-primary); }
+        .inspector-selector option { color: #222; background: #fff; }
+        .inspector-tensor { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+        .inspector-tensor td { border: 1px solid var(--glass-border); padding: 5px; text-align: right; }
+        .inspector-link { display: block; text-align: left; background: transparent; color: var(--accent); border: 0; padding: 5px 0; cursor: pointer; overflow-wrap: anywhere; }
+        .inspector-body details { border-top: 1px solid var(--glass-border); padding: 8px 0; }
+        .inspector-body summary { cursor: pointer; }
+        .inspector-body pre { white-space: pre-wrap; font-size: 11px; user-select: text; }
+        .inspector-report-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+        .inspector-issue { border-left: 3px solid var(--glass-border); padding: 8px 10px; margin: 8px 0; border-radius: 4px; background: rgba(128,128,128,.08); }
+        .inspector-error { color: #ec7777; border-color: #ec7777; }
+        .inspector-warning { color: #d9a648; border-color: #d9a648; }
+        [data-theme="light"] .inspector-error { color: #b72727; }
+        [data-theme="light"] .inspector-warning { color: #805900; }
+        .inspector-issue[role="button"] { cursor: pointer; }
+        .inspector-issue:focus-visible { outline: 2px solid var(--accent); }
+
+        #viewer-actions-bar button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        #viewer-actions-bar button:focus-visible {
+            outline: 2px solid var(--accent);
+            outline-offset: 3px;
         }
 
         .control-bar-section {
@@ -3012,6 +3073,15 @@
                         <span class="tool-button-icon">🌙</span>
                     </button>
                 </div>
+            </div>
+
+            <div id="viewer-actions-bar" role="group" aria-label="Viewer actions">
+                <button type="button" class="tool-button" id="pose-zero-btn" data-pose-preset="zero" aria-pressed="false" disabled>
+                    <span data-i18n="poseZero">零位置</span>
+                </button>
+                <button type="button" class="tool-button" id="pose-initial-btn" data-pose-preset="initial" aria-pressed="false" disabled>
+                    <span data-i18n="poseInitial">初始位置</span>
+                </button>
             </div>
 
             <div id="mujoco-simulation-bar" style="display:none;">

@@ -35,6 +35,7 @@ export class HighlightManager {
 
         // Record currently highlighted link
         this.currentHighlightedLink = link;
+        this.sceneManager.emit('linkSelected', link);
 
         // Highlight all meshes of the link (including child links connected via fixed joints)
         if (link.threeObject) {

@@ -14,8 +14,10 @@ export class URDFAdapter {
      */
     static convert(robot, urdfXML = null) {
         const model = new UnifiedRobotModel();
-        model.name = robot.name || 'robot';
+        // Object3D.name may be the root link; robotName preserves <robot name>.
+        model.name = robot.robotName || robot.name || 'robot';
         model.threeObject = robot;
+        model.sourceXML = urdfXML;
 
         // Mark model type as URDF
         if (!robot.userData) robot.userData = {};
@@ -36,8 +38,8 @@ export class URDFAdapter {
         Object.values(robot.links).forEach(urdfLink => {
             const link = this.convertLink(urdfLink);
 
-            // If urdf-loader didn't parse inertial, get from XML
-            if (!link.inertial && inertialData[urdfLink.name]) {
+            // Preserve the XML declaration and field completeness for inspection.
+            if (inertialData[urdfLink.name]) {
                 link.inertial = inertialData[urdfLink.name];
             }
 
@@ -364,8 +366,8 @@ export class URDFAdapter {
                     const xyz = originElement.getAttribute('xyz');
                     const rpy = originElement.getAttribute('rpy');
                     inertial.origin = {
-                        xyz: xyz ? xyz.split(' ').map(parseFloat) : [0, 0, 0],
-                        rpy: rpy ? rpy.split(' ').map(parseFloat) : [0, 0, 0]
+                        xyz: xyz ? xyz.trim().split(/\s+/).map(Number) : [0, 0, 0],
+                        rpy: rpy ? rpy.trim().split(/\s+/).map(Number) : [0, 0, 0]
                     };
                 } else {
                     inertial.origin = { xyz: [0, 0, 0], rpy: [0, 0, 0] };
@@ -382,6 +384,13 @@ export class URDFAdapter {
                     inertial.iyz = parseFloat(inertiaElement.getAttribute('iyz')) || 0;
                 }
 
+                const numericAttribute = (element, name) => element?.hasAttribute(name)
+                    && element.getAttribute(name).trim() !== '' && Number.isFinite(Number(element.getAttribute(name)));
+                inertial.sourceValidity = {
+                    mass: numericAttribute(massElement, 'value'),
+                    origin: [inertial.origin.xyz, inertial.origin.rpy].every(value => value.length === 3 && value.every(Number.isFinite)),
+                    inertia: ['ixx', 'iyy', 'izz', 'ixy', 'ixz', 'iyz'].every(key => numericAttribute(inertiaElement, key))
+                };
                 inertialData[linkName] = inertial;
             }
         } catch (error) {

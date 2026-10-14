@@ -25,9 +25,10 @@ const words = {
         unknownVersion: '未记录', components: '装配体组件与锁定版本', lock: '装配体锁定的 SHA-256',
         actual: '组件当前 SHA-256', raw: '展开原始清单', checksums: 'SHA 校验文件', parseErrors: '无法读取的元数据',
         visualMeshes: '视觉几何', collisionMeshes: '碰撞几何', allMeshes: '合计（视觉 + 碰撞）', meshKind: '几何类别',
-        urdfBytes: 'URDF 文件大小 (bytes，不含网格)',
+        urdfBytes: 'URDF 文件大小（不含网格）',
+        emptyLinkMeshes: '此 link 没有已加载的视觉或碰撞几何。相连 link 的几何计入各自的统计。',
         robotMeshNote: '统计已加载的几何体，包括 URDF 基本形状；视觉和碰撞分别计算，同一网格的不同实例分别计数。隐藏几何仍计入，坐标轴、质心等辅助物不计入。加载期间会自动更新，加载失败的资源不计入。顶点未焊接去重。',
-        triangles: '三角面片数', vertices: '顶点缓冲条目数', meshes: '网格实例数', bytes: '文件大小 (bytes)',
+        triangles: '三角面片数', vertices: '顶点缓冲条目数', meshes: '网格实例数', bytes: '文件大小',
         meshNote: '按已加载几何体统计全部面片，不受显示开关影响。顶点未做焊接去重；STL 本身不声明长度单位。',
         summary: '检查结果', errors: '错误', warnings: '警告', info: '提示', passed: '当前检查项未发现问题。',
         scope: '检查 URDF 结构、资源路径和已声明的物理参数，不代替动力学仿真、碰撞测试或实物验证。',
@@ -64,9 +65,10 @@ const words = {
         unknownVersion: 'Not recorded', components: 'Assembly components and pinned versions', lock: 'Assembly-pinned SHA-256',
         actual: 'Current component SHA-256', raw: 'Raw manifest', checksums: 'SHA checksum files', parseErrors: 'Unreadable metadata',
         visualMeshes: 'Visual geometry', collisionMeshes: 'Collision geometry', allMeshes: 'Total (visual + collision)', meshKind: 'Geometry',
-        urdfBytes: 'URDF file size (bytes, excluding meshes)',
+        urdfBytes: 'URDF file size (excluding meshes)',
+        emptyLinkMeshes: 'This link has no loaded visual or collision geometry. Geometry on connected links is counted under those links.',
         robotMeshNote: 'Counts loaded geometry including URDF primitives. Visuals and colliders are counted separately, including repeated mesh instances. Hidden geometry is included; viewer helpers are excluded. Updates during loading; failed resources are not counted. Vertices are not welded.',
-        triangles: 'Triangles', vertices: 'Vertex buffer entries', meshes: 'Mesh instances', bytes: 'File size (bytes)',
+        triangles: 'Triangles', vertices: 'Vertex buffer entries', meshes: 'Mesh instances', bytes: 'File size',
         meshNote: 'Counts all loaded geometry, independent of visibility. Vertices are not welded. STL files do not declare length units.',
         summary: 'Results', errors: 'Errors', warnings: 'Warnings', info: 'Notes', passed: 'No issues found by the current checks.',
         scope: 'Checks URDF structure, resource paths and declared physical parameters. This is not a dynamics, collision or hardware validation.',
@@ -92,6 +94,7 @@ function node(tag, text, className) {
     return element;
 }
 const format = value => Number.isFinite(value) ? (value === 0 ? '0' : Number(value.toPrecision(8)).toString()) : '—';
+const formatMegabytes = bytes => (bytes / 1_000_000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 3 }) + ' MB';
 
 export class ModelInspectorUI {
     constructor(sceneManager, poseController, panelManager) {
@@ -282,7 +285,7 @@ export class ModelInspectorUI {
         this.field('file', this.file.name);
         if (this.isMesh) {
             for (const key of ['triangles', 'vertices', 'meshes']) this.field(key, this.model.meshStatistics[key].toLocaleString());
-            this.field('bytes', this.file.size.toLocaleString());
+            this.field('bytes', formatMegabytes(this.file.size));
             this.paragraph(this.t('meshNote'));
             return;
         }
@@ -298,7 +301,8 @@ export class ModelInspectorUI {
         label.append(select);
         this.body.append(label);
         this.paragraph(this.t('pick'));
-        const statistics = snapshot.links.find(link => link.name === this.selected) || snapshot;
+        const selectedLink = snapshot.links.find(link => link.name === this.selected);
+        const statistics = selectedLink || snapshot;
         const table = node('table', undefined, 'inspector-tensor');
         table.setAttribute('aria-label', this.t('mesh'));
         const head = node('tr');
@@ -313,7 +317,8 @@ export class ModelInspectorUI {
             tbody.append(row);
         }
         table.append(tbody); this.body.append(table);
-        this.field('urdfBytes', this.file.size.toLocaleString());
+        if (selectedLink && statistics.total.meshes === 0) this.paragraph(this.t('emptyLinkMeshes'));
+        if (!selectedLink) this.field('urdfBytes', formatMegabytes(this.file.size));
         this.paragraph(this.t('robotMeshNote'));
     }
     renderSource(result) {

@@ -9,6 +9,8 @@ import { ConstraintManager } from './ConstraintManager.js';
 import { CoordinateAxesManager } from './CoordinateAxesManager.js';
 import { HighlightManager } from './HighlightManager.js';
 import { MeasurementManager } from './MeasurementManager.js';
+import { PartIsolationManager } from './PartIsolationManager.js';
+import { DEFAULT_HELPER_SCALE, normalizeHelperScale, scaleDisplayHelper } from '../utils/HelperDisplayScale.js';
 
 /**
  * SceneManager - Core scene management and coordination
@@ -87,11 +89,13 @@ export class SceneManager {
         this.fillLight = this.environmentManager.lights.fill;
 
         // Initialize specialized managers
+        this.helperDisplayScale = DEFAULT_HELPER_SCALE;
         this.visualizationManager = new VisualizationManager(this);
         this.inertialVisualization = new InertialVisualization(this);
         this.constraintManager = new ConstraintManager(this);
         this.axesManager = new CoordinateAxesManager(this);
         this.highlightManager = new HighlightManager(this);
+        this.isolationManager = new PartIsolationManager(this);
         this.measurementManager = new MeasurementManager(this);
 
         // Current model
@@ -134,6 +138,7 @@ export class SceneManager {
             return false;
         }
         // Render immediately (for scenes requiring immediate update)
+        this.isolationManager?.apply();
         this.renderer.render(this.scene, this.camera);
         this._dirty = false;
         return true;
@@ -276,6 +281,7 @@ export class SceneManager {
     }
 
     removeModel(model) {
+        this.isolationManager.exit();
         if (model && model.threeObject && model.threeObject.parent) {
             model.threeObject.parent.remove(model.threeObject);
         }
@@ -652,6 +658,8 @@ export class SceneManager {
             }
         };
 
+        this.dragControls.isObjectSelectable = object => this.isolationManager.isSelectable(object);
+
         // Hover highlight callback (handle immediately, like urdf-loaders)
         this.dragControls.onHover = (link) => {
             if (link) {
@@ -706,6 +714,16 @@ export class SceneManager {
     }
 
     // ==================== Core Settings ====================
+
+    setHelperDisplayScale(value) {
+        this.helperDisplayScale = normalizeHelperScale(value);
+        this.scene.traverse(object => {
+            if (object.userData.isDisplayHelper) scaleDisplayHelper(object, this.helperDisplayScale);
+        });
+        // Joint axes may be detached while their display toggle is off.
+        this.axesManager.jointAxesHelpers.forEach(({ mesh }) => scaleDisplayHelper(mesh, this.helperDisplayScale));
+        this.redraw();
+    }
 
     setIgnoreLimits(ignore) {
         this.ignoreLimits = ignore;
@@ -777,6 +795,7 @@ export class SceneManager {
         const axesSize = Math.max(maxDim * 2.5, 0.5); // 2.5x model size, minimum 0.5m
         const axesGroup = new THREE.Group();
         axesGroup.name = 'meshCoordinateAxes';
+        scaleDisplayHelper(axesGroup, this.helperDisplayScale);
 
         // Create three axes (X-red, Y-green, Z-blue)
         const axisRadius = Math.max(axesSize * 0.02, 0.008); // Axis thickness 2% of length, minimum 8mm

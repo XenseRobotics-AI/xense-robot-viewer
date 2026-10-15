@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { scaleDisplayHelper } from '../utils/HelperDisplayScale.js';
 
 /**
  * CoordinateAxesManager - Handles link coordinate axes and joint axes visualization
@@ -184,6 +185,7 @@ export class CoordinateAxesManager {
         const axesGroup = new THREE.Group();
         axesGroup.name = `${linkName}_axes`;
         axesGroup.userData.excludeFromBounds = true;
+        scaleDisplayHelper(axesGroup, this.sceneManager.helperDisplayScale);
 
         // Create three axes, thickness proportional to length
         const axisRadius = Math.max(0.001, axesSize * 0.015); // 1.5% of length, minimum 1mm
@@ -254,6 +256,8 @@ export class CoordinateAxesManager {
         // Create joint axis helper (arrow)
         const axisGroup = new THREE.Group();
         axisGroup.name = `jointAxis_${jointName}`;
+        axisGroup.userData.excludeFromBounds = true;
+        scaleDisplayHelper(axisGroup, this.sceneManager.helperDisplayScale);
 
         // Get joint rotation axis direction (local coordinate system)
         let localAxisDirection = new THREE.Vector3(0, 0, 1); // Default Z axis

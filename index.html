@@ -349,6 +349,63 @@
             display: block;
         }
 
+        #isolation-status {
+            position: absolute;
+            top: 132px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px 12px;
+            width: max-content;
+            max-width: calc(100% - 32px);
+            padding: 10px 14px;
+            border: 1px solid var(--accent);
+            border-radius: 12px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(20px);
+            box-shadow: var(--glass-shadow);
+            color: var(--text-primary);
+            font-size: 12px;
+            z-index: 101;
+        }
+        #isolation-status[hidden] { display: none; }
+        #isolation-status strong { color: var(--accent); }
+        #isolated-part-name { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #isolation-status .isolation-hint { color: var(--text-secondary); }
+        #exit-isolation-btn { cursor: pointer; color: var(--accent); border: 1px solid var(--accent); border-radius: 7px; background: transparent; padding: 5px 9px; font: inherit; }
+        .helper-scale-control { display: flex; align-items: center; gap: 7px; padding: 0 6px; font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
+        .helper-scale-control input { width: 90px; accent-color: var(--accent); cursor: pointer; }
+        .helper-scale-control output { min-width: 32px; color: var(--text-primary); font-variant-numeric: tabular-nums; }
+
+        #recent-workspace {
+            display: grid;
+            gap: 7px;
+            padding: 12px 14px;
+            border-bottom: 1px solid var(--glass-border);
+            color: var(--text-secondary);
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        #recent-workspace[hidden] { display: none; }
+        .recent-workspace-summary { display: flex; align-items: center; gap: 8px; min-width: 0; }
+        #toggle-workspace-details { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+        #toggle-workspace-details #recent-workspace-path { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        #reopen-workspace-btn { flex-shrink: 0; padding: 5px 8px; font: inherit; cursor: pointer; }
+        #reopen-workspace-btn:disabled { opacity: 0.5; cursor: default; }
+        #recent-workspace-details { display: grid; gap: 7px; padding-top: 5px; }
+        #recent-workspace-details[hidden] { display: none; }
+        #recent-workspace-path { color: var(--text-primary); font-size: 12px; overflow-wrap: anywhere; }
+        #recent-workspace-file { overflow-wrap: anywhere; max-height: 3em; overflow: auto; }
+        .recent-workspace-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+        .recent-workspace-actions button { padding: 6px 9px; cursor: pointer; font: inherit; }
+        .recent-workspace-actions button:disabled { opacity: 0.5; cursor: default; }
+        .recent-workspace-options { display: flex; align-items: center; gap: 6px; }
+        #recent-workspace-message:empty { display: none; }
+        #recent-workspace-message { line-height: 1.5; color: var(--accent); }
+
         /* Top control bar */
         #top-control-bar {
             position: absolute;
@@ -3076,6 +3133,11 @@
             </div>
 
             <div id="viewer-actions-bar" role="group" aria-label="Viewer actions">
+                <label class="helper-scale-control" data-i18n-title="helperScaleHint">
+                    <span data-i18n="helperScale">辅助标记</span>
+                    <input id="helper-display-scale" type="range" min="10" max="100" step="1" value="50" data-i18n-aria-label="helperScale" aria-label="辅助标记大小" aria-valuetext="50%">
+                    <output id="helper-display-scale-value" for="helper-display-scale">50%</output>
+                </label>
                 <button type="button" class="tool-button" id="pose-zero-btn" data-pose-preset="zero" aria-pressed="false" disabled>
                     <span data-i18n="poseZero">零位置</span>
                 </button>
@@ -3094,6 +3156,12 @@
             </div>
 
             <canvas id="canvas"></canvas>
+            <div id="isolation-status" role="status" aria-live="polite" hidden>
+                <strong data-i18n="isolationMode">孤立显示中</strong>
+                <span id="isolated-part-name"></span>
+                <span class="isolation-hint" data-i18n="isolationExitHint">Ctrl + 点击空白处退出 · 属性已锁定</span>
+                <button id="exit-isolation-btn" type="button" data-i18n="exitIsolation">退出孤立显示</button>
+            </div>
 
             <div id="floating-files-panel" class="floating-panel">
                 <div class="floating-panel-header">
@@ -3101,6 +3169,28 @@
                     <button class="panel-maximize-btn" data-panel-id="floating-files-panel">⛶</button>
                     <button class="panel-close-btn" data-panel="floating-files-panel">✕</button>
                 </div>
+                <section id="recent-workspace" hidden>
+                    <div class="recent-workspace-summary">
+                        <button type="button" id="toggle-workspace-details" aria-expanded="false" aria-controls="recent-workspace-details" data-i18n-title="expandRecentWorkspace">
+                            <span id="recent-workspace-arrow" aria-hidden="true">▸</span>
+                            <span id="recent-workspace-path"></span>
+                        </button>
+                        <button type="button" class="control-button" id="reopen-workspace-btn" disabled data-i18n="openLastFolder">打开上次文件夹</button>
+                    </div>
+                    <div id="recent-workspace-details" hidden>
+                        <span data-i18n="lastFolder">上次文件夹（浏览器可见路径）</span>
+                        <div id="recent-workspace-file"></div>
+                        <div class="recent-workspace-actions">
+                            <button type="button" class="control-button" id="choose-workspace-btn" data-i18n="chooseOtherFolder">选择文件夹</button>
+                            <button type="button" class="control-button" id="forget-workspaces-btn" data-i18n="forgetWorkspaces">清除记录</button>
+                        </div>
+                        <label class="recent-workspace-options" data-i18n-title="restoreWorkspaceHint">
+                            <input id="restore-workspace-on-start" type="checkbox" checked>
+                            <span data-i18n="restoreWorkspaceOnStart">启动时恢复上次文件夹和文件</span>
+                        </label>
+                    </div>
+                    <div id="recent-workspace-message" role="status" aria-live="polite"></div>
+                </section>
                 <div class="floating-panel-content" id="model-list">
                     <div class="empty-state" data-i18n="noFolder"></div>
                 </div>
@@ -3245,6 +3335,11 @@
         <div class="bottom-help-item">
             <span class="bottom-help-key" data-i18n="clickModel"></span>
             <span data-i18n="controlJoint"></span>
+        </div>
+        <div class="bottom-help-separator"></div>
+        <div class="bottom-help-item">
+            <span class="bottom-help-key">Ctrl + <span data-i18n="clickModel"></span></span>
+            <span data-i18n="isolatePart">孤立显示零件</span>
         </div>
         <div class="bottom-help-separator"></div>
         <div class="bottom-help-item">

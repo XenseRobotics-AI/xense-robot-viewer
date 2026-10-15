@@ -132,6 +132,12 @@ export const translations = {
         'zoom': '缩放视图',
         'clickModel': '点击模型',
         'controlJoint': '控制关节（可拖动）',
+        'helperScale': '辅助标记',
+        'helperScaleHint': '同步调整坐标轴、关节轴和质心标记的大小与粗细（10%–100%）；碰撞体与惯性盒保持真实尺寸',
+        'isolationMode': '孤立显示中',
+        'isolationExitHint': 'Ctrl + 点击空白处退出 · 属性已锁定',
+        'exitIsolation': '退出孤立显示',
+        'isolatePart': '孤立显示零件',
         'dragFile': '拖拽文件',
         'loadModel': '加载机器人模型',
         'contact': '联系方式',
@@ -143,6 +149,25 @@ export const translations = {
         'load': '加载',
         'loadFiles': '加载文件',
         'loadFolder': '加载文件夹',
+        'lastFolder': '上次文件夹（浏览器可见路径）',
+        'expandRecentWorkspace': '展开最近文件夹详情',
+        'collapseRecentWorkspace': '折叠最近文件夹详情',
+        'openLastFolder': '打开上次文件夹',
+        'openingLastFolder': '正在打开…',
+        'reselectLastFolder': '重新选择上次文件夹',
+        'chooseOtherFolder': '选择文件夹',
+        'forgetWorkspaces': '清除记录',
+        'lastViewedFile': '上次查看',
+        'restoreWorkspaceOnStart': '启动时恢复上次文件夹和文件',
+        'restoreWorkspaceHint': '仅在已有读取权限时自动恢复；共用浏览器时可关闭，或清除本机记录',
+        'folderPathPrivacy': '浏览器仅提供文件夹名称和内部相对路径，无法取得完整本机路径',
+        'folderPermissionNeeded': '请点击“打开上次文件夹”并允许读取；不会请求写入权限。',
+        'lastFolderUnavailable': '上次文件夹已移动、删除或不可访问，请重新选择文件夹。',
+        'folderOpenFailed': '无法读取文件夹，请检查读取权限或重新选择。',
+        'lastFileMissing': '上次文件已移动、删除或不再支持，已打开可用的默认文件。',
+        'lastFileLoadFailed': '文件加载失败，未覆盖上次成功查看的记录，请在文件树中选择其他文件。',
+        'folderHasNoModels': '文件夹中没有可查看的模型文件。',
+        'recentStorageUnavailable': '浏览器无法保存记录，本次会话仍可使用；关闭页面后记录可能丢失。',
         'orClickButton': '或点击下面的按钮加载',
         'noControllableJoints': '未找到可控制关节',
         'clickToEditMin': '点击编辑下限',
@@ -323,6 +348,12 @@ export const translations = {
         'zoom': 'Zoom',
         'clickModel': 'Click Model',
         'controlJoint': 'Control Joint (Draggable)',
+        'helperScale': 'Marker size',
+        'helperScaleHint': 'Scale axes, joint arrows and COM markers together (10%–100%); collision and inertia boxes retain physical dimensions',
+        'isolationMode': 'Part isolation active',
+        'isolationExitHint': 'Ctrl + click empty space to exit · Properties locked',
+        'exitIsolation': 'Exit isolation',
+        'isolatePart': 'Isolate part',
         'dragFile': 'Drag File',
         'loadModel': 'Load Robot Model',
         'contact': 'Contact',
@@ -334,6 +365,25 @@ export const translations = {
         'load': 'Load',
         'loadFiles': 'Load Files',
         'loadFolder': 'Load Folder',
+        'lastFolder': 'Last folder (browser-visible path)',
+        'expandRecentWorkspace': 'Expand recent folder details',
+        'collapseRecentWorkspace': 'Collapse recent folder details',
+        'openLastFolder': 'Open last folder',
+        'openingLastFolder': 'Opening…',
+        'reselectLastFolder': 'Reselect last folder',
+        'chooseOtherFolder': 'Choose folder',
+        'forgetWorkspaces': 'Clear history',
+        'lastViewedFile': 'Last viewed',
+        'restoreWorkspaceOnStart': 'Restore last folder and file on startup',
+        'restoreWorkspaceHint': 'Restore automatically only when read access is already granted; disable or clear history on shared browsers',
+        'folderPathPrivacy': 'Browsers expose folder names and relative paths, not the full local filesystem path',
+        'folderPermissionNeeded': 'Click “Open last folder” and allow read access; write access is not requested.',
+        'lastFolderUnavailable': 'The last folder was moved, deleted, or is unavailable. Choose the folder again.',
+        'folderOpenFailed': 'Cannot read this folder. Check read access or choose it again.',
+        'lastFileMissing': 'The last file was moved, deleted, or is unsupported. An available default file was opened.',
+        'lastFileLoadFailed': 'Loading failed. The last successful selection was retained; choose another file in the tree.',
+        'folderHasNoModels': 'This folder contains no viewable model files.',
+        'recentStorageUnavailable': 'Browser storage is unavailable. This session still works; records may be lost after closing the page.',
         'orClickButton': 'or click the button below to load',
         'noControllableJoints': 'No Controllable Joints Found',
         'clickToEditMin': 'Click to edit minimum',
@@ -457,6 +507,13 @@ class I18n {
                     element.textContent = text;
                 }
             }
+        });
+
+        document.querySelectorAll('[data-i18n-title]').forEach(element => {
+            element.title = this.t(element.getAttribute('data-i18n-title'));
+        });
+        document.querySelectorAll('[data-i18n-aria-label]').forEach(element => {
+            element.setAttribute('aria-label', this.t(element.getAttribute('data-i18n-aria-label')));
         });
 
         // 更新HTML lang属性

@@ -123,6 +123,7 @@ export class JointDragControls {
         this.hovered = null;
         this.manipulating = null;
         this.renderer = null;
+        this.isObjectSelectable = () => true;
     }
 
     update() {
@@ -167,6 +168,7 @@ export class JointDragControls {
         // Filter out collision meshes (but allow invisible visual meshes for interaction)
         const validIntersections = intersections.filter(intersect => {
             const obj = intersect.object;
+            if (!this.isObjectSelectable(obj)) return false;
             // Skip collision meshes
             if (obj.isURDFCollider || obj.userData?.isCollision || obj.userData?.isCollisionGeom) {
                 return false;
@@ -433,7 +435,7 @@ export class PointerJointDragControls extends JointDragControls {
         };
 
         this._mouseDown = e => {
-            if (e.button !== 0) return;
+            if (e.button !== 0 || e.ctrlKey || !this.enabled) return;
             updateMouse(e);
             raycaster.setFromCamera(mouse, this.camera);
 
@@ -472,6 +474,7 @@ export class PointerJointDragControls extends JointDragControls {
             // Filter out collision meshes (but allow invisible visual meshes for interaction)
             const validIntersections = intersections.filter(intersect => {
                 const obj = intersect.object;
+                if (!this.isObjectSelectable(obj)) return false;
                 // Skip collision meshes
                 if (obj.isURDFCollider || obj.userData?.isCollision || obj.userData?.isCollisionGeom) {
                     return false;

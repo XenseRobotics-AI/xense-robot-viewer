@@ -135,6 +135,10 @@ export class ModelInspectorUI {
             this.selected = link.name;
             if (this.visible && ['physics', 'mesh'].includes(this.mode)) this.render();
         });
+        sceneManager.on('isolationChanged', link => {
+            if (link && this.model?.links?.has(link.name)) this.selected = link.name;
+            if (this.visible && ['physics', 'mesh'].includes(this.mode)) this.render();
+        });
         poseController.subscribe(event => {
             if (event.type !== 'jointChanged' || !this.visible || this.mode !== 'physics' || this.framePending) return;
             this.framePending = true;
@@ -214,6 +218,8 @@ export class ModelInspectorUI {
         return this.sourcePromise ||= inspectProvenance(this.file, this.files);
     }
     async render() {
+        const isolated = this.sceneManager.isolationManager?.link;
+        if (isolated && this.model?.links?.has(isolated.name)) this.selected = isolated.name;
         const revision = this.revision, renderRevision = ++this.renderRevision;
         this.title.textContent = this.t(this.mode);
         this.panel.setAttribute('aria-label', this.t(this.mode));
@@ -249,10 +255,11 @@ export class ModelInspectorUI {
         select.append(new Option(this.t('whole'), ''));
         for (const link of physics.links) select.append(new Option(link.name, link.name));
         select.value = this.selected;
+        select.disabled = !!this.sceneManager.isolationManager?.link;
         select.addEventListener('change', () => { this.selected = select.value; this.render(); });
         label.append(select);
         this.body.append(label);
-        this.paragraph(this.t('pick'));
+        this.paragraph(select.disabled ? i18n.t('isolationExitHint') : this.t('pick'));
         const link = physics.links.find(l => l.name === this.selected);
         if (link) {
             this.field('mass', link.mass === null ? this.t('unavailable') : format(link.mass));
@@ -297,10 +304,11 @@ export class ModelInspectorUI {
         select.append(new Option(this.t('whole'), ''));
         for (const link of snapshot.links) select.append(new Option(link.name, link.name));
         select.value = this.selected;
+        select.disabled = !!this.sceneManager.isolationManager?.link;
         select.addEventListener('change', () => { this.selected = select.value; this.render(); });
         label.append(select);
         this.body.append(label);
-        this.paragraph(this.t('pick'));
+        this.paragraph(select.disabled ? i18n.t('isolationExitHint') : this.t('pick'));
         const selectedLink = snapshot.links.find(link => link.name === this.selected);
         const statistics = selectedLink || snapshot;
         const table = node('table', undefined, 'inspector-tensor');

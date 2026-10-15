@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { MathUtils } from '../utils/MathUtils.js';
+import { scaleDisplayHelper } from '../utils/HelperDisplayScale.js';
 
 /**
  * InertialVisualization - Handles center of mass and inertia visualization
@@ -226,6 +227,8 @@ export class InertialVisualization {
 
         // Mark this as center of mass
         comGroup.userData.isCenterOfMass = true;
+        comGroup.userData.excludeFromBounds = true;
+        scaleDisplayHelper(comGroup, this.sceneManager.helperDisplayScale);
 
         comGroup.position.copy(position);
         comGroup.visible = this.showCOM;

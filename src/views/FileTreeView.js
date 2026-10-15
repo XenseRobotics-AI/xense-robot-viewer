@@ -14,6 +14,7 @@ export class FileTreeView {
      */
     updateFileTree(files, fileMap, preserveState = false) {
         this.availableModels = files;
+        this.fileMap = fileMap;
         const listContainer = document.getElementById('model-list');
         if (!listContainer) return;
 
@@ -128,6 +129,11 @@ export class FileTreeView {
      * Trigger file/folder loading dialog
      */
     triggerFileLoad(isFolder = false) {
+        if (isFolder && this.onFolderRequest) { this.onFolderRequest(); return; }
+        this.triggerFileInput(isFolder);
+    }
+
+    triggerFileInput(isFolder = false) {
         // Create a temporary file input to allow file selection
         const input = document.createElement('input');
         input.type = 'file';
@@ -142,6 +148,11 @@ export class FileTreeView {
         input.addEventListener('change', (e) => {
             const files = Array.from(e.target.files);
             if (files && files.length > 0) {
+                if (this.onFilesSelected) {
+                    this.onFilesSelected(files, isFolder);
+                    input.remove();
+                    return;
+                }
                 // Create a drag event and dispatch it
                 const dt = new DataTransfer();
                 files.forEach(file => dt.items.add(file));
@@ -157,6 +168,7 @@ export class FileTreeView {
             // Clean up
             document.body.removeChild(input);
         });
+        input.addEventListener('cancel', () => input.remove(), { once: true });
 
         // Add to DOM temporarily and trigger click
         document.body.appendChild(input);
@@ -195,14 +207,15 @@ export class FileTreeView {
      * Mark current active file
      */
     markActiveFile(file) {
+        this.activeFile = file;
         document.querySelectorAll('.tree-item.selected').forEach(item => {
             item.classList.remove('selected');
         });
 
         const allTreeItems = document.querySelectorAll('#model-list .tree-item');
+        const path = [...(this.fileMap || new Map())].find(([, entry]) => entry === file)?.[0];
         allTreeItems.forEach(item => {
-            const nameSpan = item.querySelector('.name');
-            if (nameSpan && nameSpan.textContent === file.name) {
+            if (path && item.dataset.path === path) {
                 item.classList.add('selected');
                 item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             }
@@ -214,6 +227,7 @@ export class FileTreeView {
      */
     expandAndScrollToFile(file, fileMap) {
         if (!file) return;
+        this.activeFile = file;
 
         // Find file's full path in fileMap
         let filePath = null;
@@ -248,12 +262,12 @@ export class FileTreeView {
 
         // Delay scrolling to ensure DOM is updated
         setTimeout(() => {
+            if (this.activeFile !== file) return;
             const allTreeItems = document.querySelectorAll('#model-list .tree-item');
             let targetItem = null;
 
             allTreeItems.forEach(item => {
-                const nameSpan = item.querySelector('.name');
-                if (nameSpan && nameSpan.textContent === file.name) {
+                if (item.dataset.path === filePath) {
                     const parent = item.parentElement;
                     if (parent) {
                         targetItem = item;
@@ -285,7 +299,7 @@ export class FileTreeView {
      * Build file tree
      */
     buildFileTree(container, files, fileMap) {
-        const fileStructure = {};
+        const fileStructure = Object.create(null);
 
         fileMap.forEach((file, path) => {
             const ext = file.name.split('.').pop().toLowerCase();
@@ -311,7 +325,7 @@ export class FileTreeView {
                         ext: ext
                     });
                 } else {
-                    if (!current[part]) current[part] = {};
+                    if (!current[part]) current[part] = Object.create(null);
                     current = current[part];
                 }
             });
@@ -405,6 +419,7 @@ export class FileTreeView {
 
         files.forEach(fileInfo => {
             const item = this.createTreeItem(fileInfo.name, fileInfo.ext);
+            item.dataset.path = fileInfo.path;
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
                 document.querySelectorAll('.tree-item.selected').forEach(elem => {

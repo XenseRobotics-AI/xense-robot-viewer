@@ -14,6 +14,8 @@
 
 **Xense Robot Viewer** is maintained by [XenseRobotics-AI](https://github.com/XenseRobotics-AI) for further customization. It is a web-based 3D viewer for robot models and scenes. Built on top of [Three.js](https://threejs.org/), it provides an intuitive interface for visualizing, editing, and simulating robots directly in the browser without any installation required. This tool helps you visualize and analyze robot structures, joints, and physical properties.
 
+For part isolation, marker sizing, and recent-folder recovery instructions in Chinese, see the [中文操作说明](docs/usage.zh-CN.md).
+
 **Upstream Live Demo** (This is the original project's deployment, not a deployment of this repository. All processing happens in your browser - your models never leave your device):
 
 [![Try it now](https://img.shields.io/badge/🌐_Try_it_now-viewer.robotsfan.com-brightgreen?style=for-the-badge)](http://viewer.robotsfan.com/)
@@ -26,13 +28,13 @@
   - **MJCF**: Mujoco XML format
   - **USD**: Universal Scene Description (partial support)
 - **Robot Types**: Serial robot structures (parallel robots not currently supported)
-- **Visualization Tools**: Visual/collision geometry, inertia tensors, center of mass, coordinate frames, joint axes, shadows, ground grid visibility, coordinate system orientation
-- **Interactive Controls**: Drag joints in real-time, adjust model poses
+- **Visualization Tools**: Visual/collision geometry, inertia tensors, center of mass, coordinate frames, joint axes, shadows, ground grid visibility, coordinate system orientation; synchronized marker sizing from 10% to 100%, defaulting to 50%
+- **Interactive Controls**: Drag joints in real-time, adjust model poses, and isolate a part with Ctrl + click while keeping its inspection information locked
 - **Animation Editor (Experimental)**: Multi-clip dope sheet and Bézier graph editor with auto-key, multi-selection, undo/redo, play/record ranges, event and media tracks, pose snapshots, audio-reactive keys, live-input recording, autosave, and portable `.robotanim.json` projects
 - **Measurement Tools**: Measure distances between joints and links with 3D visualization, display X/Y/Z axis projections and total distance, support ground height measurement
 - **Code Editor**: Built-in CodeMirror editor with syntax highlighting and live preview
 - **Physics Simulation**: Integrated MuJoCo engine for dynamics simulation (MJCF models)
-- **Scene Management**: File tree and scene graph visualization with hierarchical structure
+- **Scene Management**: File tree and scene graph visualization with hierarchical structure, last-folder and last-file recovery, and a collapsible recent-folder bar
 
 ## Getting Started
 
@@ -60,6 +62,14 @@ pnpm run build
 
 Output will be in the `dist/` directory.
 
+Run regression tests:
+
+```bash
+pnpm test
+```
+
+Tests cover model inspection, asset paths, pose presets, render scheduling, isolated selection, marker sizing, and recent-workspace recovery and storage.
+
 ## Pose Shortcuts
 
 The separate shortcut bar beside the existing display controls provides **Zero pose** and **Initial pose** buttons. On narrower windows it moves below the original bar. The selected mode is remembered for the next model load.
@@ -67,13 +77,27 @@ The separate shortcut bar beside the existing display controls provides **Zero p
 - **Zero pose** sets movable joints to zero, including joints whose motion limits exclude zero.
 - **Initial pose** automatically reads the current workcell's `config/start_pose.robotanim.json` from the loaded asset directory and applies the active clip at its playback start. There is no need to import JSON through the animation editor. Joints omitted by the configuration retain their model-load values.
 
-Load the complete asset directory. If `forward-01-flexiv-rizon4s-taccap.urdf` is present, it opens by default; otherwise the original model-selection fallback applies. You can select any workcell's URDF/Xacro/MJCF file afterward. Configurations are resolved relative to that file, with the nearest parent directory taking precedence. Named variants such as `*-taccap.urdf` use `config/start_pose.taccap.robotanim.json` when present. Robot names and configured joints must match the loaded model. If the configuration is missing or invalid, **Initial pose** is disabled with an explanation on hover; **Zero pose** remains available. USD and standalone meshes do not expose pose shortcuts.
+Load the complete asset directory. Its last successfully viewed file opens first when a valid recovery record exists. Without one, `forward-01-flexiv-rizon4s-taccap.urdf` is preferred when present; otherwise the original model-selection fallback applies. You can select any workcell's URDF/Xacro/MJCF file afterward. Configurations are resolved relative to that file, with the nearest parent directory taking precedence. Named variants such as `*-taccap.urdf` use `config/start_pose.taccap.robotanim.json` when present. Robot names and configured joints must match the loaded model. If the configuration is missing or invalid, **Initial pose** is disabled with an explanation on hover; **Zero pose** remains available. USD and standalone meshes do not expose pose shortcuts.
 
 Switching poses pauses animation recording/playback and exits an active MuJoCo simulation so the displayed robot and joint controls stay synchronized. Pose shortcuts do not replace the animation project or add keyframes. Manual joint edits clear the active preset highlight. Future shortcuts can be added to `#viewer-actions-bar` independently of the original top display bar.
 
 The company favicon is stored at `public/branding/logo.jpg`.
 
+## Recent Folders and Files
+
+The file panel remembers the last folder and the last successfully viewed file in each folder. Its recent-folder bar is collapsed by default, keeping the folder name and **Open last folder** button visible. Expand it for the last file's relative path, **Choose folder**, **Clear history**, and the startup-restore setting. When read permission is already granted, startup restores the last file automatically. Otherwise, the button requests read access from a user gesture. The remembered exact relative path takes priority over the default `forward-01-flexiv-rizon4s-taccap.urdf`; missing files fall back to an available default with a notice, and failed loads do not replace a successful selection.
+
+Recovery records live in the browser's **IndexedDB → `xense-robot-viewer-recent-workspaces` → `records`** database, scoped to the site's origin and browser profile. At most ten folders are retained, along with their directory handles, last file's relative path, selection timestamps, and the startup preference. Model contents and full operation logs are not stored, and nothing is written to the repository or uploaded. Clearing history removes saved recovery records; it does not delete local files or revoke browser permissions. Private sessions and clearing browser site data can remove these records.
+
+Folder identity uses `FileSystemHandle.isSameEntry`, so different directories with the same name do not share a file selection. Exact relative paths also distinguish duplicate filenames. Slow loads are prevented from replacing newer selections, and cleared history propagates between tabs without stale writes recreating it. Separate browser profiles have separate records. People sharing one browser profile share its history; disable startup restore or clear history before switching people. There is no application account system that could distinguish those users.
+
+Direct reopening requires the File System Access API in a secure context, such as a supported Chromium browser on HTTPS or localhost. Other browsers keep the file-input workflow and ask the user to select the folder again; legacy folder selections are matched only by a fingerprint of their file paths, sizes, and modification times. Browser APIs expose the folder name and internal relative paths, not the full local filesystem path such as `~/src/xense-robot-viewer`. The panel labels and tooltip make that distinction explicit. Directory enumeration skips `.git`, `.aws`, `.codex`, `.agents`, `node_modules`, `.venv`, `venv`, `__pycache__`, and `dist`.
+
 ## Model Inspection
+
+Ctrl + click a part in the 3D viewport to isolate that link and lock the physical-properties, mesh-statistics, and hover information to it. The status banner shows the isolated part and an exit button. Ctrl + click empty viewport space to restore the complete model; ordinary hovering and clicking empty space keep isolation active. Loading another model or starting physics simulation exits isolation.
+
+The **Marker size** slider adjusts coordinate axes, joint arrows (including their rotation indicators), and center-of-mass markers together. It defaults to 50%, ranges from 10% to 100% of the previous marker dimensions, and updates existing and newly created helpers. Collision geometry and inertia boxes retain their physical dimensions.
 
 The independent shortcut bar adds **Physical properties**, **View source**, **Mesh statistics**, and **Model health report**. The original display toolbar stays intact. Labels follow the viewer language and the floating panel supports dragging and resizing.
 

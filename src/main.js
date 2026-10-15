@@ -21,6 +21,7 @@ import { AnimationWorkspace } from './animation/ui/AnimationWorkspace.js';
 import { PosePresetController } from './controllers/PosePresetController.js';
 import { PosePresetsUI } from './ui/PosePresetsUI.js';
 import { ModelInspectorUI } from './ui/ModelInspectorUI.js';
+import { WorkspaceController } from './controllers/WorkspaceController.js';
 
 // Expose d3 globally for PanelManager
 window.d3 = d3;
@@ -151,7 +152,7 @@ class App {
             };
 
             this.fileHandler.onModelLoaded = (model, file, isMesh = false, snapshot = null) => {
-                this.handleModelLoaded(model, file, isMesh, snapshot);
+                return this.handleModelLoaded(model, file, isMesh, snapshot);
             };
 
             // Initialize joint controls UI
@@ -169,6 +170,7 @@ class App {
 
             // Initialize file tree with empty state (shows load button)
             this.fileTreeView.updateFileTree([], new Map());
+            this.workspaceController = new WorkspaceController(this.fileHandler, this.fileTreeView);
 
             // Initialize panel manager
             this.panelManager = new PanelManager();
@@ -305,6 +307,8 @@ class App {
 
             // Start render loop
             this.animate();
+
+            await this.workspaceController.init();
 
         } catch (error) {
             console.error('Initialization error:', error);
@@ -628,6 +632,22 @@ class App {
     setupCanvasClickHandler(canvas) {
         let mouseDownPos = null;
         let mouseDownTime = 0;
+        const isolation = this.sceneManager.isolationManager;
+        const status = document.getElementById('isolation-status');
+        const actionsBar = document.getElementById('viewer-actions-bar');
+        const positionStatus = () => {
+            status.style.top = `${actionsBar.getBoundingClientRect().bottom + 12}px`;
+        };
+        const statusObserver = new ResizeObserver(positionStatus);
+        statusObserver.observe(actionsBar);
+        window.addEventListener('resize', positionStatus);
+        this.sceneManager.on('isolationChanged', link => {
+            positionStatus();
+            status.hidden = !link;
+            document.getElementById('isolated-part-name').textContent = link?.name || '';
+        });
+        document.getElementById('exit-isolation-btn').addEventListener('click', () => isolation.exit());
+        canvas.addEventListener('mouseleave', () => { mouseDownPos = null; });
 
         canvas.addEventListener('mousedown', (event) => {
             if (event.button === 0) {
@@ -659,6 +679,7 @@ class App {
                     const obj = intersect.object;
                     let current = obj;
                     while (current) {
+                        if (!current.visible) return false;
                         const name = current.name || '';
                         if (name.includes('jointAxis') || name.includes('helper') ||
                             name.includes('grid') || name.includes('Ground') ||
@@ -667,10 +688,14 @@ class App {
                         }
                         current = current.parent;
                     }
-                    return obj.isMesh && obj.visible;
+                    return obj.isMesh && isolation.isSelectable(obj);
                 });
 
-                if (modelIntersects.length === 0) {
+                if (event.ctrlKey) {
+                    const link = modelIntersects.map(hit => isolation.findLink(hit.object)).find(Boolean);
+                    if (link) isolation.enter(link);
+                    else if (modelIntersects.length === 0) isolation.exit();
+                } else if (modelIntersects.length === 0 && !isolation.link) {
                     this.sceneManager.highlightManager.clearHighlight();
 
                     // Clear selection in graph
@@ -924,6 +949,7 @@ class App {
         this.animationWorkspace?.refreshLanguage();
         this.posePresetsUI?.refresh();
         this.modelInspector?.refreshLanguage();
+        this.workspaceController?.render();
 
         // Update code editor save status text
         if (this.codeEditorManager) {

@@ -18,6 +18,15 @@ export class UIController {
         const showComBtn = document.getElementById('show-com');
         const showInertiaBtn = document.getElementById('show-inertia');
         const ignoreLimitsBtn = document.getElementById('ignore-limits');
+        const helperScale = document.getElementById('helper-display-scale');
+        const helperScaleValue = document.getElementById('helper-display-scale-value');
+        helperScale.value = String(Math.round(this.sceneManager.helperDisplayScale * 100));
+        helperScaleValue.value = `${helperScale.value}%`;
+        helperScale.addEventListener('input', () => {
+            this.sceneManager.setHelperDisplayScale(Number(helperScale.value) / 100);
+            helperScaleValue.value = `${Math.round(this.sceneManager.helperDisplayScale * 100)}%`;
+            helperScale.setAttribute('aria-valuetext', helperScaleValue.value);
+        });
 
         // Helper function: toggle button state
         const toggleButton = (button, callback) => {

@@ -22,6 +22,8 @@ export class HighlightManager {
      */
     highlightLink(link, currentModel) {
         if (!link) return;
+        const isolated = this.sceneManager.isolationManager?.link;
+        if (isolated && link.name !== isolated.name) return;
 
         // If already highlighted the same link, return directly (use name comparison)
         if (this.currentHighlightedLink && this.currentHighlightedLink.name === link.name) {
@@ -54,6 +56,7 @@ export class HighlightManager {
      */
     unhighlightLink(link, currentModel) {
         if (!link) return;
+        if (this.sceneManager.isolationManager?.link) return;
 
         // Clear current highlighted link record (use name comparison)
         if (this.currentHighlightedLink && this.currentHighlightedLink.name === link.name) {
@@ -316,6 +319,9 @@ export class HighlightManager {
                     hasMass = true;
                 }
             }
+
+            // Isolation reports only this part, including when it has fixed children.
+            if (this.sceneManager.isolationManager?.link) return;
 
             // Traverse child objects, find child links connected via fixed joints
             for (const child of linkObj.children) {

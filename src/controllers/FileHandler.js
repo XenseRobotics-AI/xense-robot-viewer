@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { inspectMesh } from '../inspection/MeshStatistics.js';
 import { ModelLoaderFactory } from '../loaders/ModelLoaderFactory.js';
-import { readFileContent, getFileFromEntry, getFileTypeFromExtension, getFileDisplayType } from '../utils/FileUtils.js';
+import { readFileContent, getFileFromEntry, getFileTypeFromExtension, getFileDisplayType, workspaceRelativePath } from '../utils/FileUtils.js';
 
 export class FileHandler {
     constructor() {
@@ -14,6 +14,53 @@ export class FileHandler {
         this.currentModelFile = null;
         this.onModelLoaded = null; // Callback function
         this.usdViewerManager = null; // USD viewer manager (lazy loaded)
+        this.loadRequestId = 0;
+        this.sourceVersion = 0;
+        this.workspaceId = null;
+        this.preferredModelPath = '';
+    }
+
+    beginSource({ workspaceId = null, preferredPath = '' } = {}) {
+        this.sourceVersion++;
+        this.loadRequestId++;
+        this.workspaceId = workspaceId;
+        this.preferredModelPath = preferredPath;
+        this.fileMap.clear();
+        this.availableModels = [];
+        return this.sourceVersion;
+    }
+
+    async loadFiles(files, options = {}) {
+        const version = this.beginSource(options);
+        for (const file of files) this.fileMap.set(file.webkitRelativePath || file.name, file);
+        const loadableFiles = await this.findAllLoadableFiles(files);
+        if (version !== this.sourceVersion) return 'cancelled';
+        this.availableModels = loadableFiles;
+        this.onFilesLoaded?.(loadableFiles);
+        if (!loadableFiles.length) return 'empty';
+        const missing = this.preferredModelPath && !loadableFiles.some(info => workspaceRelativePath(info.file) === this.preferredModelPath);
+        const requestId = this.loadRequestId + 1;
+        const success = await this.loadFileOrMesh(this.selectInitialModel(loadableFiles));
+        if (version !== this.sourceVersion || requestId !== this.loadRequestId) return 'cancelled';
+        return !success ? 'failed' : missing ? 'missing' : 'loaded';
+    }
+
+    createLoadContext(file) {
+        return {
+            requestId: ++this.loadRequestId, sourceVersion: this.sourceVersion, selectedAt: Date.now(),
+            workspaceId: [...this.fileMap.values()].includes(file) ? this.workspaceId : null,
+            path: workspaceRelativePath(file),
+        };
+    }
+
+    async completeLoad(model, file, isMesh, context) {
+        const current = () => context.requestId === this.loadRequestId && context.sourceVersion === this.sourceVersion;
+        if (!current()) return false;
+        this.currentModelFile = file;
+        await this.onModelLoaded?.(model, file, isMesh, null);
+        if (!current()) return false;
+        if (context.workspaceId && context.path) await this.onFileViewed?.(context);
+        return true;
     }
 
     /**
@@ -64,7 +111,8 @@ export class FileHandler {
             dragCounter = 0;
             const dropZone = document.getElementById('drop-zone');
             if (dropZone) dropZone.classList.remove('drag-over');
-            this.handleDrop(e);
+            if (this.onDrop) this.onDrop(e);
+            else this.handleDrop(e);
         }, false);
     }
 
@@ -76,7 +124,7 @@ export class FileHandler {
         const items = e.dataTransfer.items;
         if (!items || items.length === 0) return;
 
-        this.fileMap.clear();
+        this.beginSource();
 
         const entries = [];
         for (let i = 0; i < items.length; i++) {
@@ -266,18 +314,23 @@ export class FileHandler {
      */
     async loadFileOrMesh(fileInfo) {
         if (fileInfo.category === 'model') {
-            await this.loadFile(fileInfo.file);
+            return this.loadFile(fileInfo.file);
         } else if (fileInfo.category === 'mesh') {
-            await this.loadMeshAsModel(fileInfo.file, fileInfo.name);
+            return this.loadMeshAsModel(fileInfo.file, fileInfo.name);
         }
     }
 
     /**
-     * Prefer the default Xense workcell when available. Otherwise retain the
-     * canonical MJCF scene/model preference over specialised helper variants.
+     * Restore the exact last-viewed path first. Otherwise prefer the default Xense workcell.
+     * Prefer canonical MJCF scenes/models over specialised helper variants.
      */
     selectInitialModel(loadableFiles) {
         if (!loadableFiles || loadableFiles.length === 0) return null;
+
+        if (this.preferredModelPath) {
+            const remembered = loadableFiles.find(info => info.file && workspaceRelativePath(info.file) === this.preferredModelPath);
+            if (remembered) return remembered;
+        }
 
         const models = loadableFiles.filter(fileInfo => fileInfo.category === 'model');
         if (models.length === 0) return loadableFiles[0];
@@ -309,14 +362,17 @@ export class FileHandler {
      * Load model file
      */
     async loadFile(file) {
-        this.currentModelFile = file;
+        const context = this.createLoadContext(file);
+        // In-flight loaders must keep their original assets when a different folder opens.
+        const sourceFiles = new Map(this.fileMap);
+        if (!sourceFiles.size) sourceFiles.set(file.name, file);
 
         try {
             const fileName = file.name.toLowerCase();
 
             // Get the full path from fileMap
             let fullPath = file.name;
-            for (const [path, f] of this.fileMap.entries()) {
+            for (const [path, f] of sourceFiles.entries()) {
                 if (f === file) {
                     fullPath = path;
                     break;
@@ -342,23 +398,25 @@ export class FileHandler {
                 }
 
                 // USD files need File object passed
+                if (context.requestId !== this.loadRequestId) return false;
                 const model = await ModelLoaderFactory.loadModel(
                     'usd',
                     null,
                     fullPath,
-                    this.fileMap,
+                    sourceFiles,
                     file,
                     { usdViewerManager: this.usdViewerManager }
                 );
 
-                this.onModelLoaded?.(model, file, false, null);
+                const loaded = await this.completeLoad(model, file, false, context);
                 document.getElementById('drop-zone')?.classList.remove('show');
                 document.getElementById('drop-zone')?.classList.remove('drag-over');
-                return;
+                return loaded;
             }
 
             // For other files, read text content
             const content = await readFileContent(file);
+            if (context.requestId !== this.loadRequestId) return false;
 
             // Detect if USDC binary format (based on content)
             if (this.isUSDCBinaryContent(content)) {
@@ -381,16 +439,18 @@ export class FileHandler {
                 fileType,
                 content,
                 fullPath,  // Use full path instead of just file.name
-                this.fileMap,
+                sourceFiles,
                 file,
                 { usdViewerManager: this.usdViewerManager }
             );
 
             // Notify model loaded (pass null as snapshot, let main.js create it)
-            this.onModelLoaded?.(model, file, false, null);
+            const loaded = await this.completeLoad(model, file, false, context);
 
             document.getElementById('drop-zone')?.classList.remove('show');
             document.getElementById('drop-zone')?.classList.remove('drag-over');
+
+            return loaded;
 
         } catch (error) {
             console.error('Failed to load file:', error);
@@ -505,6 +565,7 @@ export class FileHandler {
      * Load single mesh file as model
      */
     async loadMeshAsModel(file, fileName) {
+        const context = this.createLoadContext(file);
         try {
             const meshObject = await ModelLoaderFactory.loadMeshFileDirect(file, fileName);
 
@@ -554,8 +615,7 @@ export class FileHandler {
                 threeObject: meshObject
             };
 
-            this.currentModelFile = file;
-            this.onModelLoaded?.(simpleMeshModel, file, true, null);
+            return await this.completeLoad(simpleMeshModel, file, true, context);
 
         } catch (error) {
             console.error('Failed to load mesh file:', error);

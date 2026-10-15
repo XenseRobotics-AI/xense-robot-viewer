@@ -9,6 +9,7 @@ import { MathUtils } from '../utils/MathUtils.js';
 import { CoordinateAxesManager } from './CoordinateAxesManager.js';
 import { InertialVisualization } from './InertialVisualization.js';
 import { VisualizationManager } from './VisualizationManager.js';
+import { scaleDisplayHelper } from '../utils/HelperDisplayScale.js';
 
 export class MujocoSimulationManager {
     constructor(sceneManager) {
@@ -947,6 +948,7 @@ export class MujocoSimulationManager {
             const axesGroup = CoordinateAxesManager.createAxesGeometry(0.1);
             axesGroup.userData.isVisualization = true;
             axesGroup.userData.type = 'axes';
+            scaleDisplayHelper(axesGroup, this.sceneManager.helperDisplayScale);
             axesGroup.visible = showAxes;
             axesGroup.raycast = () => {};
 
@@ -964,6 +966,7 @@ export class MujocoSimulationManager {
                 const comMarker = InertialVisualization.createCOMGeometry(0.02);
                 comMarker.userData.isVisualization = true;
                 comMarker.userData.type = 'com';
+                scaleDisplayHelper(comMarker, this.sceneManager.helperDisplayScale);
                 comMarker.visible = showCOM;
                 this.getPosition(model.body_ipos, b, comMarker.position);
                 this.bodies[b].add(comMarker);
@@ -1031,6 +1034,7 @@ export class MujocoSimulationManager {
                     const jointAxis = CoordinateAxesManager.createJointArrowGeometry(axis);
                     jointAxis.userData.isVisualization = true;
                     jointAxis.userData.type = 'jointAxis';
+                    scaleDisplayHelper(jointAxis, this.sceneManager.helperDisplayScale);
                     jointAxis.visible = showJointAxes;
                     jointAxis.raycast = () => {};
 
@@ -1247,6 +1251,7 @@ export class MujocoSimulationManager {
      * Start simulation
      */
     startSimulation() {
+        this.sceneManager.isolationManager.exit();
         this.params.paused = false;
         this.isSimulating = true;
 

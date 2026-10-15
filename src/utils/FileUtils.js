@@ -3,8 +3,13 @@
  */
 
 /**
- * Read file content as text
+ * Resolve the path inside a picked workspace, excluding its root folder name.
  */
+export function workspaceRelativePath(file) {
+    return (file.webkitRelativePath || '').replace(/^\/+/, '').split('/').slice(1).join('/');
+}
+
+/** Read file content as text. */
 export function readFileContent(file) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();

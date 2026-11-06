@@ -1,9 +1,25 @@
 import { defineConfig } from 'vite';
-import { readFileSync } from 'fs';
+import { readFileSync, watch } from 'fs';
 
 // Read package.json to get version number
 const packageJson = JSON.parse(readFileSync('./package.json', 'utf-8'));
 const version = packageJson.version;
+
+function devWatchOptions() {
+  // Let Chokidar honor an explicit user override.
+  if (process.env.CHOKIDAR_USEPOLLING !== undefined) return {};
+
+  try {
+    const watcher = watch(new URL(import.meta.url));
+    watcher.close();
+    return {};
+  } catch (error) {
+    if (error.code !== 'EMFILE' && error.code !== 'ENOSPC') throw error;
+
+    console.warn(`[vite] Native file watching is unavailable (${error.code}); using polling every 300 ms.`);
+    return { usePolling: true, interval: 300 };
+  }
+}
 
 // Vite plugin: replace version placeholder in HTML
 function versionPlugin() {
@@ -15,7 +31,7 @@ function versionPlugin() {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   // Use relative paths, support file:// protocol and arbitrary deployment paths
   base: './',
   // Define global constants
@@ -45,6 +61,7 @@ export default defineConfig({
   server: {
     port: 3000,
     open: true,
+    watch: command === 'serve' ? devWatchOptions() : undefined,
     hmr: {
       overlay: false
     },
@@ -136,5 +153,5 @@ export default defineConfig({
     charset: 'utf8'
   },
   clearScreen: false
-});
+}));
 

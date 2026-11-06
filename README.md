@@ -54,6 +54,8 @@ Start the development server:
 pnpm run dev
 ```
 
+At startup, the development server probes native file watching. If this probe fails with `EMFILE` or `ENOSPC`, the server automatically switches to polling every 300 ms without changing system settings. Polling may use more CPU. Errors that occur later while watching project files do not trigger this fallback. To force polling (for example, on a network filesystem), run `CHOKIDAR_USEPOLLING=true CHOKIDAR_INTERVAL=300 pnpm run dev`; an explicit `CHOKIDAR_USEPOLLING=false` keeps native watching enabled and disables the automatic fallback.
+
 Build for production:
 
 ```bash

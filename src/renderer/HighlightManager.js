@@ -241,10 +241,37 @@ export class HighlightManager {
         return false;
     }
 
+    /** Resolve the actual base only when every ancestor joint is fixed. */
+    getStaticBaseLink(link, currentModel) {
+        let object = link?.threeObject;
+        let base = link;
+        const visited = new Set();
+        while (object) {
+            if (visited.has(object)) return null;
+            visited.add(object);
+            const jointObject = object.parent;
+            if (!jointObject || !(jointObject.isURDFJoint || jointObject.type === 'URDFJoint')) break;
+            const joint = currentModel?.joints?.get(jointObject.name);
+            if (!joint || joint.type !== 'fixed') return null;
+            const parent = jointObject.parent;
+            if (!parent || !(parent.isURDFLink || parent.type === 'URDFLink')) break;
+            const parentLink = currentModel?.links?.get(parent.name);
+            if (!parentLink) return null;
+            base = parentLink;
+            object = parent;
+        }
+        return base;
+    }
+
     /**
      * Show hover information (Link name, parent Joint name, mass, pose)
      */
     showHoverInfo(link, currentModel) {
+        const selectedPart = link;
+        // Keep isolated inspection local; otherwise report the fixed platform's actual base.
+        if (!this.sceneManager.isolationManager?.link) {
+            link = this.getStaticBaseLink(link, currentModel) || link;
+        }
         const hoverInfo = document.getElementById('hover-info');
         const jointNameEl = document.getElementById('hover-joint-name');
         const linkNameEl = document.getElementById('hover-link-name');
@@ -294,6 +321,10 @@ export class HighlightManager {
             jointNameEl.textContent = `Joint: ${parentJointName} (${parentJointType})`;
         } else {
             jointNameEl.textContent = `Joint: ${parentJointName}`;
+        }
+
+        if (link !== selectedPart) {
+            jointNameEl.textContent += ` · Part: ${selectedPart.name || 'Unknown'}`;
         }
 
         // Line 3: Display mass (including all child links connected via fixed joints)

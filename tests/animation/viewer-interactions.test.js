@@ -131,3 +131,32 @@ test('helper scaling defaults to half size, scales thickness, and preserves anch
     const laterAxis = manager.axesManager.createLinkAxes(links[2], links[2].name);
     assert.equal(laterAxis.scale.x, 1);
 });
+
+
+test('fixed platform hover reports its actual base and retains the selected part name', () => {
+    const { manager, model, links } = fixture();
+    model.joints.get('joint1').type = 'fixed';
+    const elements = new Map();
+    const previousDocument = globalThis.document;
+    globalThis.document = { getElementById(id) {
+        if (!elements.has(id)) elements.set(id, { textContent: '', innerHTML: '', style: {}, classList: { add() {}, remove() {} } });
+        return elements.get(id);
+    } };
+    try {
+        HighlightManager.prototype.showHoverInfo.call(manager.highlightManager, links[1], model);
+        assert.equal(elements.get('hover-link-name').textContent, 'Link: base');
+        assert.match(elements.get('hover-joint-name').textContent, /None \(Base Link\)/);
+        assert.match(elements.get('hover-joint-name').textContent, /Part: arm/);
+        assert.equal(manager.highlightManager.getStaticBaseLink(links[2], model).name, 'base');
+        manager.isolationManager.link = links[1];
+        HighlightManager.prototype.showHoverInfo.call(manager.highlightManager, links[1], model);
+        assert.equal(elements.get('hover-link-name').textContent, 'Link: arm');
+    } finally { globalThis.document = previousDocument; }
+});
+
+test('a movable ancestor prevents a tool from being relabelled as the platform base', () => {
+    const { manager, model, links } = fixture();
+    assert.equal(manager.highlightManager.getStaticBaseLink(links[1], model), null);
+    assert.equal(manager.highlightManager.getStaticBaseLink(links[2], model), null);
+    assert.equal(manager.highlightManager.getStaticBaseLink(links[0], model).name, 'base');
+});

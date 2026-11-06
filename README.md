@@ -68,7 +68,7 @@ Run regression tests:
 pnpm test
 ```
 
-Tests cover model inspection, asset paths, pose presets, render scheduling, isolated selection, marker sizing, and recent-workspace recovery and storage.
+Tests cover model inspection, asset paths, pose presets, render scheduling, isolated selection, fixed-platform hover information, marker sizing, and recent-workspace recovery and storage.
 
 ## Pose Shortcuts
 
@@ -94,6 +94,8 @@ Folder identity uses `FileSystemHandle.isSameEntry`, so different directories wi
 Direct reopening requires the File System Access API in a secure context, such as a supported Chromium browser on HTTPS or localhost. Other browsers keep the file-input workflow and ask the user to select the folder again; legacy folder selections are matched only by a fingerprint of their file paths, sizes, and modification times. Browser APIs expose the folder name and internal relative paths, not the full local filesystem path such as `~/src/xense-robot-viewer`. The panel labels and tooltip make that distinction explicit. Directory enumeration skips `.git`, `.aws`, `.codex`, `.agents`, `node_modules`, `.venv`, `venv`, `__pycache__`, and `dist`.
 
 ## Model Inspection
+
+Hovering over a link connected to the model's base entirely through fixed joints shows the actual base link and its information. The joint line retains the hovered link's name as `Part: <name>`. A movable ancestor keeps hover information local to the hovered link, and isolated inspection always reports the isolated link.
 
 Ctrl + click a part in the 3D viewport to isolate that link and lock the physical-properties, mesh-statistics, and hover information to it. The status banner shows the isolated part and an exit button. Ctrl + click empty viewport space to restore the complete model; ordinary hovering and clicking empty space keep isolation active. Loading another model or starting physics simulation exits isolation.
 
